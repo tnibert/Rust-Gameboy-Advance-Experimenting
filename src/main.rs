@@ -18,6 +18,8 @@ use agb::{display, syscall};
 use agb::{include_aseprite,
     display::object::{Graphics, Tag}
 };
+use agb::interrupt::{Interrupt, add_interrupt_handler};
+use bare_metal::CriticalSection;
 
 // Import the sprites in to this constant. This holds the sprite 
 // and palette data in a way that is manageable by agb.
@@ -43,6 +45,11 @@ fn main(mut gba: agb::Gba) -> ! {
     
     // Get the OAM manager
     let object = gba.display.object.get();
+
+    // vblank interrupt handler
+    let _a = add_interrupt_handler(Interrupt::VBlank, |_: CriticalSection| {
+        agb::println!("Woah there! There's been a vblank!");
+    });
 
     // Create an object with the ball sprite
     let mut ball = object.object_sprite(BALL.sprite(0));
@@ -71,6 +78,7 @@ fn main(mut gba: agb::Gba) -> ! {
         ball.set_x(ball_x as u16).set_y(ball_y as u16);
     
         // Wait for vblank, then commit the objects to the screen
+        // todo: don't busy wait for vblank, use interrupt
         agb::display::busy_wait_for_vblank();
         object.commit();
     }

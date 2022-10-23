@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 agb = "0.12.1"
+bare-metal = "1"
 
 [profile.dev]
 opt-level = 2
