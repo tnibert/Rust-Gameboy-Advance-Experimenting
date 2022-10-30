@@ -16,7 +16,7 @@
 
 //use agb::{display, syscall};
 use agb::{include_aseprite,
-    display::object::{Graphics, Tag}
+    display::object::{Graphics, Tag, Object}
 };
 use agb::interrupt::{Interrupt, add_interrupt_handler};
 use agb::input::{Button, ButtonController};
@@ -30,6 +30,38 @@ const GRAPHICS: &Graphics = include_aseprite!("gfx/sprites.aseprite");
 /*const PADDLE_END: &Tag = GRAPHICS.tags().get("Paddle End");
 const PADDLE_MID: &Tag = GRAPHICS.tags().get("Paddle Mid");*/
 const BALL: &Tag = GRAPHICS.tags().get("Ball");
+
+pub enum Direction {
+    UP,
+    DOWN,
+    LEFT,
+    RIGHT
+}
+
+pub struct Sprite {
+    x: i32,
+    y: i32,
+    velocity: i32
+}
+
+impl Sprite {
+    pub fn new  () -> Sprite {
+        Self {
+            x: agb::display::WIDTH / 2 - 8,     // todo: make 16 a constant
+            y: agb::display::HEIGHT / 2 - 8,
+            velocity: 1,
+        }
+    }
+
+    pub fn update_pos(&mut self, dir: Direction) {
+        match dir {
+            Direction::LEFT => self.x -= self.velocity,
+            Direction::RIGHT => self.x += self.velocity,
+            Direction::UP => self.y -= self.velocity,
+            Direction::DOWN => self.y += self.velocity
+        }
+    }
+}
 
 // The main function must take 1 arguments and never return. The agb::entry decorator
 // ensures that everything is in order. `agb` will call this after setting up the stack
@@ -46,33 +78,29 @@ fn main(mut gba: agb::Gba) -> ! {
 
     let mut input = ButtonController::new();
 
-    // todo: encapsulate ball in a struct
     // Create an object with the ball sprite
-    let mut ball = object.object_sprite(BALL.sprite(0));
-
-    let mut ball_x = 50;
-    let mut ball_y = 50;
-    let x_velocity = 1;
-    let y_velocity = 1;
+    // todo: make ball hold ball_obj
+    let mut ball_obj = object.object_sprite(BALL.sprite(0));
+    let mut ball = Sprite::new();
     
     loop {
         // handle input to move ball
         input.update();
-        if input.is_pressed(Button::UP) && ball_y > 0 {
-            ball_y -= y_velocity;
+        if input.is_pressed(Button::UP) && ball.y > 0 {
+            ball.update_pos(Direction::UP);
         }
-        if input.is_pressed(Button::DOWN) && ball_y < agb::display::HEIGHT - 16 {
-            ball_y += y_velocity;
+        if input.is_pressed(Button::DOWN) && ball.y < agb::display::HEIGHT - 16 {
+            ball.update_pos(Direction::DOWN);
         }
-        if input.is_pressed(Button::LEFT) && ball_x > 0 {
-            ball_x -= x_velocity;
+        if input.is_pressed(Button::LEFT) && ball.x > 0 {
+            ball.update_pos(Direction::LEFT);
         }
-        if input.is_pressed(Button::RIGHT) && ball_x < agb::display::WIDTH - 16 {
-            ball_x += x_velocity;
+        if input.is_pressed(Button::RIGHT) && ball.x < agb::display::WIDTH - 16 {
+            ball.update_pos(Direction::RIGHT);
         }
-    
-        // Set the position of the ball to match our new calculated position
-        ball.set_x(ball_x as u16).set_y(ball_y as u16);
+
+        // Set the position of the sprite to match our new calculated position
+        ball_obj.set_x(ball.x as u16).set_y(ball.y as u16);
     
         // Wait for vblank, then commit the objects to the screen
         // todo: don't busy wait for vblank, use interrupt
