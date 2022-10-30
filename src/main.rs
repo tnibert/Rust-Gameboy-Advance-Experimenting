@@ -14,11 +14,12 @@
 #![cfg_attr(test, reexport_test_harness_main = "test_main")]
 #![cfg_attr(test, test_runner(agb::test_runner::test_runner))]
 
-use agb::{display, syscall};
+//use agb::{display, syscall};
 use agb::{include_aseprite,
     display::object::{Graphics, Tag}
 };
 use agb::interrupt::{Interrupt, add_interrupt_handler};
+use agb::input::{Button, ButtonController};
 use bare_metal::CriticalSection;
 
 // Import the sprites in to this constant. This holds the sprite 
@@ -26,23 +27,15 @@ use bare_metal::CriticalSection;
 const GRAPHICS: &Graphics = include_aseprite!("gfx/sprites.aseprite");
 
 // We define some easy ways of referencing the sprites
-const PADDLE_END: &Tag = GRAPHICS.tags().get("Paddle End");
-const PADDLE_MID: &Tag = GRAPHICS.tags().get("Paddle Mid");
+/*const PADDLE_END: &Tag = GRAPHICS.tags().get("Paddle End");
+const PADDLE_MID: &Tag = GRAPHICS.tags().get("Paddle Mid");*/
 const BALL: &Tag = GRAPHICS.tags().get("Ball");
 
 // The main function must take 1 arguments and never return. The agb::entry decorator
 // ensures that everything is in order. `agb` will call this after setting up the stack
 // and interrupt handlers correctly. It will also handle creating the `Gba` struct for you.
 #[agb::entry]
-fn main(mut gba: agb::Gba) -> ! {
-    /*let mut bitmap = gba.display.video.bitmap3();
-
-    for x in 0..display::WIDTH {
-        let y = syscall::sqrt(x << 6);
-        let y = (display::HEIGHT - y).clamp(0, display::HEIGHT - 1);
-        bitmap.draw_point(x, y, 0x001F);
-    }*/
-    
+fn main(mut gba: agb::Gba) -> ! {    
     // Get the OAM manager
     let object = gba.display.object.get();
 
@@ -51,27 +44,31 @@ fn main(mut gba: agb::Gba) -> ! {
         agb::println!("Woah there! There's been a vblank!");
     });
 
+    let mut input = ButtonController::new();
+
+    // todo: encapsulate ball in a struct
     // Create an object with the ball sprite
     let mut ball = object.object_sprite(BALL.sprite(0));
 
     let mut ball_x = 50;
     let mut ball_y = 50;
-    let mut x_velocity = 1;
-    let mut y_velocity = 1;
+    let x_velocity = 1;
+    let y_velocity = 1;
     
     loop {
-        // This will calculate the new position and enforce the position
-        // of the ball remains within the screen
-        ball_x = (ball_x + x_velocity).clamp(0, agb::display::WIDTH - 16);
-        ball_y = (ball_y + y_velocity).clamp(0, agb::display::HEIGHT - 16);
-    
-        // We check if the ball reaches the edge of the screen and reverse it's direction
-        if ball_x == 0 || ball_x == agb::display::WIDTH - 16 {
-            x_velocity = -x_velocity;
+        // handle input to move ball
+        input.update();
+        if input.is_pressed(Button::UP) && ball_y > 0 {
+            ball_y -= y_velocity;
         }
-    
-        if ball_y == 0 || ball_y == agb::display::HEIGHT - 16 {
-            y_velocity = -y_velocity;
+        if input.is_pressed(Button::DOWN) && ball_y < agb::display::HEIGHT - 16 {
+            ball_y += y_velocity;
+        }
+        if input.is_pressed(Button::LEFT) && ball_x > 0 {
+            ball_x -= x_velocity;
+        }
+        if input.is_pressed(Button::RIGHT) && ball_x < agb::display::WIDTH - 16 {
+            ball_x += x_velocity;
         }
     
         // Set the position of the ball to match our new calculated position
