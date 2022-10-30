@@ -5,7 +5,7 @@ TARGET  := $(PROJ)
 
 build: $(TARGET).gba
 
-$(TARGET).gba :
+$(TARGET).gba : src/main.rs
 	@cargo build --release
 	@arm-none-eabi-objcopy -O binary target/thumbv4t-none-eabi/release/agb_play $@
 	@gbafix $@
