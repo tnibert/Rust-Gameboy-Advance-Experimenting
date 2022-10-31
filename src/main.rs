@@ -38,21 +38,14 @@ pub enum Direction {
     RIGHT
 }
 
-pub struct Sprite {
+pub struct Sprite <'a> {
     x: i32,
     y: i32,
-    velocity: i32
+    velocity: i32,
+    object: Object <'a>
 }
 
-impl Sprite {
-    pub fn new  () -> Sprite {
-        Self {
-            x: agb::display::WIDTH / 2 - 8,     // todo: make 16 a constant
-            y: agb::display::HEIGHT / 2 - 8,
-            velocity: 1,
-        }
-    }
-
+impl Sprite <'_> {
     pub fn update_pos(&mut self, dir: Direction) {
         match dir {
             Direction::LEFT => self.x -= self.velocity,
@@ -79,9 +72,12 @@ fn main(mut gba: agb::Gba) -> ! {
     let mut input = ButtonController::new();
 
     // Create an object with the ball sprite
-    // todo: make ball hold ball_obj
-    let mut ball_obj = object.object_sprite(BALL.sprite(0));
-    let mut ball = Sprite::new();
+    let mut ball = Sprite {
+        x: agb::display::WIDTH / 2 - 8,     // todo: make 16 a constant
+        y: agb::display::HEIGHT / 2 - 8,
+        velocity: 1,
+        object: object.object_sprite(BALL.sprite(0))
+    };
     
     loop {
         // handle input to move ball
@@ -100,7 +96,7 @@ fn main(mut gba: agb::Gba) -> ! {
         }
 
         // Set the position of the sprite to match our new calculated position
-        ball_obj.set_x(ball.x as u16).set_y(ball.y as u16);
+        ball.object.set_x(ball.x as u16).set_y(ball.y as u16);
     
         // Wait for vblank, then commit the objects to the screen
         // todo: don't busy wait for vblank, use interrupt
